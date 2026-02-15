@@ -1,0 +1,15 @@
+{
+  "files.exclude": {
+    "scripts": true,
+    "config": true,
+    "docs": true,
+    ".github": true,
+    ".env": true,
+    ".env.example": true,
+    ".gitignore": true,
+    "PROJECT-INDEX.md": true,
+    "README.md": false,
+    "requirements.txt": true,
+    "**/.sync-metadata.json": true
+  }
+}

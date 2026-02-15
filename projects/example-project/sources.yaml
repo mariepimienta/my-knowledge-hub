@@ -1,0 +1,16 @@
+# Confluence pages to sync for this project.
+#
+# Each page entry has:
+#   name:        Friendly name used with --page flag
+#   url:         Full Confluence page URL (page ID is extracted automatically)
+#
+# Optional:
+#   access:      "read-only" (default) or "read-write"
+#   sync_children: true (default) or false
+#   sync_attachments: true (default) or false
+#   local_path:  Override where to store the markdown (default: confluence/<name>.md)
+#
+pages:
+  - name: example
+    url: "https://mariepi1994.atlassian.net/wiki/spaces/~712020099d9aa51ce640388cfd6b7aa040e0da/pages/131074/Example+Project"
+    access: read-write

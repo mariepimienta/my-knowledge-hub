@@ -78,19 +78,18 @@ cat > "$PROJECT_DIR/sources.yaml" << 'YAMLEOF'
 #
 # Each page entry has:
 #   name:        Friendly name used with --page flag
-#   page_id:     Confluence page ID (from the URL)
-#   local_path:  Where to store the synced markdown (relative to project dir)
+#   url:         Full Confluence page URL (page ID is extracted automatically)
+#
+# Optional:
 #   access:      "read-only" (default) or "read-write"
 #   sync_children: true (default) or false
 #   sync_attachments: true (default) or false
+#   local_path:  Override where to store the markdown (default: confluence/<name>.md)
 #
 # Example:
 #   pages:
 #     - name: architecture
-#       page_id: "12345678"
-#       local_path: confluence/architecture.md
-#       access: read-only
-#       sync_children: true
+#       url: "https://your-domain.atlassian.net/wiki/spaces/TEAM/pages/12345678/Architecture"
 
 pages: []
 YAMLEOF
@@ -138,7 +137,7 @@ HEADER
         # Count pages in sources.yaml
         local page_count=0
         if [ -f "$project_path/sources.yaml" ]; then
-            page_count=$(grep -c '^[[:space:]]*page_id:' "$project_path/sources.yaml" 2>/dev/null) || page_count=0
+            page_count=$(grep -cE '^[[:space:]]*(page_id|url):' "$project_path/sources.yaml" 2>/dev/null) || page_count=0
         fi
 
         echo "## [$name](projects/$name/PROJECT.md)" >> "$index_file"

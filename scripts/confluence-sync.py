@@ -233,9 +233,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="Sync Confluence pages to local markdown files."
     )
-    parser.add_argument(
-        "--project", required=True,
+    project_group = parser.add_mutually_exclusive_group(required=True)
+    project_group.add_argument(
+        "--project",
         help="Project name (must match a directory under projects/)"
+    )
+    project_group.add_argument(
+        "--all", action="store_true",
+        help="Sync all projects"
     )
     parser.add_argument(
         "--page",
@@ -247,12 +252,22 @@ def main():
     )
     args = parser.parse_args()
 
-    # Load configs
-    try:
-        sources = load_project_sources(args.project)
-    except FileNotFoundError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
+    if args.page and args.all:
+        print("ERROR: --page cannot be used with --all", file=sys.stderr)
         sys.exit(1)
+
+    # Discover which projects to sync
+    if args.all:
+        projects_dir = get_repo_root() / "projects"
+        project_names = sorted([
+            d.name for d in projects_dir.iterdir()
+            if d.is_dir() and (d / "sources.yaml").exists()
+        ])
+        if not project_names:
+            print("No projects found with sources.yaml")
+            sys.exit(0)
+    else:
+        project_names = [args.project]
 
     try:
         env = resolve_confluence_env()
@@ -261,60 +276,79 @@ def main():
         sys.exit(1)
 
     client = ConfluenceClient(env["base_url"], env["email"], env["api_token"])
-    metadata = read_sync_metadata(args.project)
-
-    project_dir = get_repo_root() / "projects" / args.project
-
-    # Filter pages if --page specified
-    pages = sources.get("pages", [])
-    if args.page:
-        pages = [p for p in pages if p.get("name") == args.page]
-        if not pages:
-            print(f"ERROR: Page '{args.page}' not found in sources.yaml", file=sys.stderr)
-            sys.exit(1)
 
     total_synced = 0
     total_skipped = 0
     total_failed = 0
 
-    for page_config in pages:
-        page_name = page_config.get("name", "unknown")
-        page_id = page_config.get("page_id")
-        local_path = page_config.get("local_path", f"confluence/{slugify(page_name)}.md")
+    for project_name in project_names:
+        print(f"\n{'='*40}")
+        print(f"Project: {project_name}")
+        print(f"{'='*40}")
 
-        print(f"\nSyncing page: {page_name} (ID: {page_id})")
+        try:
+            sources = load_project_sources(project_name)
+        except FileNotFoundError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            if not args.all:
+                sys.exit(1)
+            continue
 
-        # Determine destination directory and assets directory
-        dest_dir = project_dir / Path(local_path).parent
-        assets_dir = project_dir / "confluence" / "assets"
+        metadata = read_sync_metadata(project_name)
+        project_dir = get_repo_root() / "projects" / project_name
 
-        # Sync the parent page
-        status, title = sync_page(
-            client, page_id, dest_dir, assets_dir, metadata, page_config, args.force
-        )
+        # Filter pages if --page specified
+        pages = sources.get("pages", [])
+        if args.page:
+            pages = [p for p in pages if p.get("name") == args.page]
+            if not pages:
+                print(f"ERROR: Page '{args.page}' not found in sources.yaml", file=sys.stderr)
+                sys.exit(1)
 
-        if status == "synced":
-            total_synced += 1
-        elif status == "skipped":
-            total_skipped += 1
-        else:
-            total_failed += 1
+        if not pages:
+            print("  No pages configured in sources.yaml")
+            continue
 
-        # Sync child pages recursively
-        parent_slug = slugify(title or page_name)
-        children_dir = dest_dir / parent_slug
-        s, sk, f = sync_children(
-            client, page_id, children_dir, assets_dir, metadata, page_config, args.force
-        )
-        total_synced += s
-        total_skipped += sk
-        total_failed += f
+        for page_config in pages:
+            page_name = page_config.get("name", "unknown")
+            page_id = page_config.get("page_id")
+            local_path = page_config.get("local_path", f"confluence/{slugify(page_name)}.md")
 
-    # Save metadata
-    write_sync_metadata(args.project, metadata)
+            print(f"\nSyncing page: {page_name} (ID: {page_id})")
+
+            # Determine destination directory and assets directory
+            dest_dir = project_dir / Path(local_path).parent
+            assets_dir = project_dir / "confluence" / "assets"
+
+            # Sync the parent page
+            status, title = sync_page(
+                client, page_id, dest_dir, assets_dir, metadata, page_config, args.force
+            )
+
+            if status == "synced":
+                total_synced += 1
+            elif status == "skipped":
+                total_skipped += 1
+            else:
+                total_failed += 1
+
+            # Sync child pages recursively
+            parent_slug = slugify(title or page_name)
+            children_dir = dest_dir / parent_slug
+            s, sk, f = sync_children(
+                client, page_id, children_dir, assets_dir, metadata, page_config, args.force
+            )
+            total_synced += s
+            total_skipped += sk
+            total_failed += f
+
+        # Save metadata per project
+        write_sync_metadata(project_name, metadata)
 
     # Print summary
     print(f"\n--- Sync Summary ---")
+    if args.all:
+        print(f"  Projects: {len(project_names)}")
     print(f"  Synced:  {total_synced}")
     print(f"  Skipped: {total_skipped}")
     print(f"  Failed:  {total_failed}")

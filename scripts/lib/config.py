@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
 import yaml
@@ -37,15 +38,43 @@ def load_project_sources(project_name):
     with open(sources_path, "r") as f:
         sources = yaml.safe_load(f) or {}
 
-    # Apply defaults to each page entry
+    # Apply defaults and resolve URLs to page IDs
     pages = sources.get("pages", [])
     for page in pages:
+        # If url is provided but page_id is not, extract it from the URL
+        if "url" in page and "page_id" not in page:
+            page["page_id"] = _extract_page_id(page["url"])
+
         for key, default_value in defaults.items():
             if key not in page:
                 page[key] = default_value
 
     sources["pages"] = pages
     return sources
+
+
+def _extract_page_id(url):
+    """Extract the Confluence page ID from a full URL.
+
+    Supports formats:
+      - .../pages/12345678/Page+Title
+      - .../pages/12345678
+      - ...?pageId=12345678
+    """
+    # Try /pages/<id> pattern
+    match = re.search(r"/pages/(\d+)", url)
+    if match:
+        return match.group(1)
+
+    # Try ?pageId=<id> query parameter
+    match = re.search(r"[?&]pageId=(\d+)", url)
+    if match:
+        return match.group(1)
+
+    raise ValueError(
+        f"Could not extract page ID from URL: {url}\n"
+        f"Expected a URL containing /pages/<id> or ?pageId=<id>"
+    )
 
 
 def read_sync_metadata(project_name):

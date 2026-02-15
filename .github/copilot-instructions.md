@@ -55,6 +55,14 @@ The `confluence/` directory uses **nested subdirectories** to mirror the Conflue
 - **DON'T:** Call the Confluence API directly — you don't have access
 - **DON'T:** Suggest fetching content from Confluence when local files exist
 
+### Confluence files are read-only locally
+
+**NEVER edit files in the `confluence/` directory directly.** These files are managed by the sync scripts and any local edits will be overwritten on the next sync.
+
+- To **update a Confluence page**, always use `update-confluence.py` which pushes content to Confluence and then re-syncs the local copy automatically.
+- To **create new content**, write it to a temporary file or use stdin, then push it via `update-confluence.py`.
+- The `notes/` and `emails/` directories ARE yours to edit freely — only `confluence/` is off-limits.
+
 ---
 
 ## Confluence Sync Rules

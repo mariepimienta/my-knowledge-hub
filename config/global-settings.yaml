@@ -1,0 +1,11 @@
+confluence:
+  env_vars:
+    base_url: CONFLUENCE_BASE_URL
+    email: CONFLUENCE_EMAIL
+    api_token: CONFLUENCE_API_TOKEN
+
+defaults:
+  access: read-only
+  sync_attachments: true
+  sync_children: true
+  attachment_prefix_with_page_id: true

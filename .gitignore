@@ -14,6 +14,9 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Projects (local knowledge, not committed)
+projects/
+
 # IDE
 .vscode/*
 !.vscode/settings.json

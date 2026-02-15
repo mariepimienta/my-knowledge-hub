@@ -35,16 +35,16 @@ python scripts/confluence-sync.py --project my-project
    ```yaml
    pages:
      - name: architecture
-       page_id: "12345678"
-       local_path: confluence/architecture.md
-       access: read-only
-       sync_children: true
+       url: "https://your-domain.atlassian.net/wiki/spaces/TEAM/pages/12345678/Architecture"
    ```
 
 2. Sync:
    ```bash
    # All pages for a project
    python scripts/confluence-sync.py --project my-project
+
+   # All pages across all projects
+   bash scripts/sync-all.sh
 
    # A specific page
    python scripts/confluence-sync.py --project my-project --page architecture
@@ -74,6 +74,7 @@ The local copy is automatically re-synced after a successful push.
 | Script | Description |
 |--------|-------------|
 | `scripts/confluence-sync.py` | Pull Confluence pages to local markdown |
+| `scripts/sync-all.sh` | Sync all Confluence pages across all projects |
 | `scripts/update-confluence.py` | Push local markdown to Confluence |
 | `scripts/init-project.sh <name>` | Create a new project with standard structure |
 | `scripts/list-projects.sh` | List all projects with status summary |
@@ -91,6 +92,7 @@ my-knowledge-hub/
 │   │   ├── config.py              # Config loading utilities
 │   │   └── confluence_client.py   # Confluence API client
 │   ├── confluence-sync.py         # Pull from Confluence
+│   ├── sync-all.sh                # Sync all projects at once
 │   ├── update-confluence.py       # Push to Confluence
 │   ├── init-project.sh            # Create new project
 │   └── list-projects.sh           # List projects
